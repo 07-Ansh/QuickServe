@@ -1,0 +1,492 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { MapPin, Clock, ArrowRight } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import { SERVICES } from '@/constants/services'
+import { calculateDistance, formatDistance, calculateETA, getTimeAgo } from '@/lib/distance'
+import { RequestHistory } from '@/components/RequestHistory'
+
+
+
+import { WalletDashboard } from '@/components/WalletDashboard'
+import { ProviderHeader } from '@/components/ProviderHeader'
+import { ProfileEditor } from '@/components/ProfileEditor'
+import dynamic from 'next/dynamic'
+
+const MapComponent = dynamic(() => import('@/components/MapComponent'), {
+    ssr: false,
+    loading: () => <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">Loading Map...</div>
+})
+
+export default function ProviderDashboard() {
+    const [requests, setRequests] = useState<any[]>([])
+    const [showHistory, setShowHistory] = useState(false)
+    const [showWallet, setShowWallet] = useState(false)
+    const [showProfile, setShowProfile] = useState(false)
+    const [currentUser, setCurrentUser] = useState<any>(null)
+    const [isOnline, setIsOnline] = useState(false)
+    const [serviceType, setServiceType] = useState<string | null>(null)
+    const [providerLocation, setProviderLocation] = useState<[number, number] | null>(null)
+    const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+    const [notification, setNotification] = useState<string | null>(null)
+    const [showRequestList, setShowRequestList] = useState(false) // Modal for incoming requests
+
+    useEffect(() => {
+        // Get Provider Location
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    setProviderLocation([position.coords.latitude, position.coords.longitude])
+                },
+                (error) => console.error('Location error:', error),
+                { enableHighAccuracy: true }
+            )
+        }
+
+        // Get User (Real or Demo)
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            const isDemo = !user && window.location.search.includes('demo=true')
+            const userId = user?.id || (isDemo ? 'demo-provider-456' : null)
+
+            if (userId) {
+                // Fetch Profile details
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single()
+
+                if (data) {
+                    setIsOnline(data.is_online || false)
+                    setServiceType(data.service_type)
+
+                    // Onboarding Check: If no service type, force Profile Editor
+                    if (!data.service_type && !isDemo) {
+                        setShowProfile(true)
+                    }
+                }
+                else if (!isDemo) {
+                    // Force onboarding for new users without profile
+                    setShowProfile(true)
+                }
+            }
+
+            setCurrentUser({ id: userId, isDemo })
+        }
+        checkUser()
+    }, [])
+
+    useEffect(() => {
+        if (!currentUser) return
+
+        // 1. Fetch initial pending requests with service details
+        const fetchRequests = async () => {
+            let query = supabase
+                .from('requests')
+                .select(`
+                    *,
+                    service:services!service_id (
+                        id,
+                        name,
+                        base_price,
+                        icon
+                    )
+                `)
+                .in('status', ['searching', 'found', 'arrived', 'in_progress']) // Show active jobs too
+                .order('created_at', { ascending: false })
+
+            // Filter by Service Type if set (provider locked to one service)
+            if (serviceType) {
+                query = query.eq('service_id', serviceType)
+            }
+
+            const { data, error } = await query
+
+            // If in demo mode or no requests found, generate simulated requests
+            if (currentUser.isDemo || (data && data.length === 0)) {
+                const now = new Date()
+                const demoRequests = [
+                    {
+                        id: 'demo-req-1',
+                        service_id: 'plumbing',
+                        customer_id: 'demo-customer-1',
+                        status: 'searching',
+                        lat: providerLocation ? providerLocation[0] + 0.01 : 28.6239,
+                        lng: providerLocation ? providerLocation[1] + 0.008 : 77.2190,
+                        address: '123 Green Park, Main Market',
+                        notes: 'Urgent: Kitchen sink leaking badly. Please bring necessary tools.',
+                        created_at: new Date(now.getTime() - 8000).toISOString(), // 8 seconds ago
+                        service: { id: 'plumbing', name: 'Plumbing', base_price: 350 }
+                    },
+                    {
+                        id: 'demo-req-2',
+                        service_id: 'electrical',
+                        customer_id: 'demo-customer-2',
+                        status: 'searching',
+                        lat: providerLocation ? providerLocation[0] - 0.005 : 28.6089,
+                        lng: providerLocation ? providerLocation[1] + 0.012 : 77.2310,
+                        address: '456 Sector 15, Tower B, Apt 304',
+                        notes: 'Power socket not working in bedroom. Need quick fix.',
+                        created_at: new Date(now.getTime() - 15000).toISOString(), // 15 seconds ago
+                        service: { id: 'electrical', name: 'Electrical', base_price: 400 }
+                    },
+                    {
+                        id: 'demo-req-3',
+                        service_id: 'cleaning',
+                        customer_id: 'demo-customer-3',
+                        status: 'searching',
+                        lat: providerLocation ? providerLocation[0] + 0.003 : 28.6169,
+                        lng: providerLocation ? providerLocation[1] - 0.004 : 77.2050,
+                        address: '789 Hauz Khas Village, House 12',
+                        notes: null,
+                        created_at: new Date(now.getTime() - 3000).toISOString(), // 3 seconds ago (Just now)
+                        service: { id: 'cleaning', name: 'Cleaning', base_price: 250 }
+                    },
+                    {
+                        id: 'demo-req-4',
+                        service_id: 'repair',
+                        customer_id: 'demo-customer-4',
+                        status: 'searching',
+                        lat: providerLocation ? providerLocation[0] - 0.008 : 28.6059,
+                        lng: providerLocation ? providerLocation[1] - 0.006 : 77.2030,
+                        address: 'Plot 21, Mehrauli Road',
+                        notes: 'Door lock broken, need immediate repair.',
+                        created_at: new Date(now.getTime() - 18000).toISOString(), // 18 seconds ago
+                        service: { id: 'repair', name: 'General Repair', base_price: 300 }
+                    }
+                ]
+
+                // Filter demo requests by service type if set
+                const filteredDemoRequests = serviceType
+                    ? demoRequests.filter(req => req.service_id === serviceType)
+                    : demoRequests
+
+                setRequests(filteredDemoRequests)
+            } else if (data) {
+                setRequests(data)
+            }
+        }
+
+        fetchRequests()
+
+        // 2. Subscribe to new requests (skip in demo mode)
+        if (!currentUser.isDemo) {
+            const channel = supabase
+                .channel('public:requests')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'requests' },
+                    (payload) => {
+                        fetchRequests()
+                        setNotification("New service request received!")
+                        setShowRequestList(true) // Auto-open modal on new request
+                        setTimeout(() => setNotification(null), 3000)
+                    }
+                )
+                .subscribe()
+
+            return () => {
+                supabase.removeChannel(channel)
+            }
+        }
+    }, [currentUser, serviceType, providerLocation]) // Re-run when user/service changes
+
+    const handleUpdateStatus = async (requestId: string, newStatus: string) => {
+        const { data: { user } } = await supabase.auth.getUser()
+
+        // Demo Fallback
+        const isDemo = !user && window.location.search.includes('demo=true')
+        const userId = user?.id || (isDemo ? 'demo-provider-456' : null)
+
+        if (!userId) {
+            alert("Please login first")
+            return
+        }
+
+        const updateData: any = { status: newStatus }
+        if (newStatus === 'found') updateData.provider_id = userId
+
+        const { error } = await supabase
+            .from('requests')
+            .update(updateData)
+            .eq('id', requestId)
+
+        if (error) {
+            console.error('Error updating request:', error)
+            alert('Failed to update request')
+        }
+    }
+
+    const toggleOnline = async () => {
+        const newState = !isOnline
+        setIsOnline(newState)
+
+        if (currentUser?.id && !currentUser.isDemo) {
+            await supabase
+                .from('profiles')
+                .update({ is_online: newState })
+                .eq('id', currentUser.id)
+        }
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 flex flex-col overflow-hidden">
+            <ProviderHeader
+                providerId={currentUser?.id}
+                isOnline={isOnline}
+                onToggleOnline={toggleOnline}
+                onOpenHistory={() => setShowHistory(true)}
+                onOpenWallet={() => setShowWallet(true)}
+            />
+
+            {/* Notification Toast */}
+            {notification && (
+                <div className="fixed top-20 right-4 bg-black text-white px-6 py-3 rounded-xl shadow-lg z-50 animate-bounce">
+                    {notification}
+                </div>
+            )}
+
+            {/* Floating Action Button - View Requests */}
+            <button
+                onClick={() => setShowRequestList(true)}
+                className="fixed bottom-6 right-6 z-40 bg-black text-white px-6 py-4 rounded-full shadow-2xl font-bold flex items-center gap-3 hover:scale-105 transition-transform"
+            >
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[24px]">
+                    {requests.length}
+                </span>
+                Incoming Requests
+            </button>
+
+            {/* FULLSCREEN MAP */}
+            <div className="flex-1 max-h-[calc(100vh-64px)] overflow-hidden">
+                {/* MAP VIEW (2/3 on desktop, 1/2 on mobile) */}
+                <div className="flex-1 md:w-2/3 h-1/2 md:h-full relative border-r border-gray-200">
+                    <MapComponent
+                        center={providerLocation || [28.6139, 77.2090]}
+                        markers={[
+                            ...(providerLocation ? [{ id: 'me', position: providerLocation, title: 'You', icon: 'provider-idle' }] : []),
+                            ...requests.map(r => ({
+                                id: r.id,
+                                position: [r.lat || 28.6139, r.lng || 77.2090] as [number, number], // Fallback if lat/lng missing
+                                title: SERVICES.find(s => s.id === r.service_id)?.name || 'Request',
+                                icon: 'customer-marker' // You might need to update MapComponent to handle different icons if not already
+                            }))
+                        ]}
+                        onMarkerClick={(id) => {
+                            if (id !== 'me') {
+                                setSelectedRequestId(id)
+                                // Scroll logic could go here
+                            }
+                        }}
+                    />
+                </div>
+
+                {/* INCOMING REQUESTS MODAL (like ProviderList) */}
+                {showRequestList && (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center md:justify-center p-0 md:p-4 animate-in fade-in duration-200">
+                        <div className="bg-white w-full md:max-w-2xl md:rounded-2xl shadow-2xl max-h-[85vh] md:max-h-[80vh] flex flex-col animate-in slide-in-from-bottom md:slide-in-from-bottom-0 duration-300">
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                                <h2 className="text-2xl font-bold">Incoming Requests</h2>
+                                <button
+                                    onClick={() => setShowRequestList(false)}
+                                    className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            {/* Request List */}
+                            <div className="flex-1 overflow-y-auto p-4">
+
+                                {requests.length === 0 ? (
+                                    <div className="text-center py-10 text-gray-400">
+                                        No requests found for {serviceType || 'your service'}...
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 pb-20">
+                                        {requests.map((req) => {
+                                            const service = SERVICES.find(s => s.id === req.service_id)
+                                            const isSelected = selectedRequestId === req.id
+
+                                            // Calculate distance if both locations available
+                                            const distance = (providerLocation && req.lat && req.lng)
+                                                ? calculateDistance(
+                                                    providerLocation[0],
+                                                    providerLocation[1],
+                                                    req.lat,
+                                                    req.lng
+                                                )
+                                                : null
+
+                                            const distanceText = distance ? formatDistance(distance) : 'Unknown'
+                                            const eta = distance ? calculateETA(distance) : 'Calculating...'
+                                            const timeAgo = getTimeAgo(req.created_at)
+
+                                            // Get price from joined service data or fallback to base price
+                                            const price = req.service?.base_price || service?.base_price || 350
+
+                                            // Get service icon
+                                            const ServiceIcon = service?.icon
+
+                                            return (
+                                                <div
+                                                    key={req.id}
+                                                    className={`bg-white p-4 rounded-xl shadow-sm border transition-all duration-300 ${isSelected
+                                                        ? 'border-black ring-1 ring-black scale-[1.02]'
+                                                        : 'border-gray-100 hover:border-gray-300'
+                                                        }`}
+                                                    onClick={() => setSelectedRequestId(req.id)}
+                                                >
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            {ServiceIcon && (
+                                                                <div className={`p-1.5 rounded-lg ${service?.color || 'bg-gray-100'}`}>
+                                                                    <ServiceIcon className="w-4 h-4" />
+                                                                </div>
+                                                            )}
+                                                            <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-md uppercase">
+                                                                {service?.name || req.service_id}
+                                                            </span>
+                                                        </div>
+                                                        <span className="font-mono font-bold text-green-600">₹{price}</span>
+                                                    </div>
+
+                                                    <div className="mb-4">
+                                                        <h3 className="font-bold text-lg truncate">
+                                                            {req.address || 'Address not provided'}
+                                                        </h3>
+                                                        {req.notes && (
+                                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                                                📝 {req.notes}
+                                                            </p>
+                                                        )}
+                                                        <div className="flex items-center gap-4 text-sm text-gray-500 mt-2">
+                                                            <span className="flex items-center gap-1 font-medium">
+                                                                <MapPin className="w-3 h-3" /> {distanceText}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 font-medium">
+                                                                <Clock className="w-3 h-3" /> {eta}
+                                                            </span>
+                                                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">
+                                                                {timeAgo}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                        {req.status === 'searching' && (
+                                                            <>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        // Remove from view (could add to rejected list in DB)
+                                                                        setRequests(prev => prev.filter(r => r.id !== req.id))
+                                                                    }}
+                                                                    className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200 transition-colors"
+                                                                >
+                                                                    Ignore
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        handleUpdateStatus(req.id, 'found')
+                                                                    }}
+                                                                    className="flex-1 bg-black text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                                                                >
+                                                                    Accept <ArrowRight className="w-4 h-4" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        {req.status === 'found' && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    handleUpdateStatus(req.id, 'arrived')
+                                                                }}
+                                                                className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2"
+                                                            >
+                                                                Mark Arrived
+                                                            </button>
+                                                        )}
+                                                        {req.status === 'arrived' && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    handleUpdateStatus(req.id, 'in_progress')
+                                                                }}
+                                                                className="w-full bg-yellow-500 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2"
+                                                            >
+                                                                Start Job
+                                                            </button>
+                                                        )}
+                                                        {req.status === 'in_progress' && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    handleUpdateStatus(req.id, 'completed')
+                                                                }}
+                                                                className="w-full bg-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2"
+                                                            >
+                                                                Complete Job
+                                                            </button>
+                                                        )}
+                                                        {req.status === 'completed' && (
+                                                            <div className="w-full bg-gray-100 text-gray-500 py-3 rounded-lg font-bold flex items-center justify-center gap-2">
+                                                                Completed
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer Info */}
+                            <div className="p-4 border-t border-gray-200 bg-gray-50 text-center text-sm text-gray-500">
+                                {isOnline ? (
+                                    <span className="text-green-600 font-semibold">🟢 You're online and accepting requests</span>
+                                ) : (
+                                    <span className="text-gray-500">⚪ Go online to start accepting requests</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Wallet Overlay */}
+                {showWallet && currentUser && (
+                    <WalletDashboard
+                        providerId={currentUser.id}
+                        onClose={() => setShowWallet(false)}
+                    />
+                )}
+
+                {/* History Overlay */}
+                {showHistory && currentUser && (
+                    <RequestHistory
+                        userId={currentUser.id}
+                        role="provider"
+                        onClose={() => setShowHistory(false)}
+                    />
+                )}
+
+                {/* Profile/Onboarding Overlay */}
+                {showProfile && currentUser && (
+                    <ProfileEditor
+                        userId={currentUser.id}
+                        role="provider"
+                        onClose={() => {
+                            setShowProfile(false)
+                            // Reload profile to get updated service type
+                            window.location.reload()
+                        }}
+                    />
+                )}
+            </div>
+            )
+}
