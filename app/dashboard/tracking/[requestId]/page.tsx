@@ -13,7 +13,7 @@ export default function TrackingPage() {
     const [eta, setEta] = useState<number>(300) // Default 5 mins
     const [status, setStatus] = useState<string>('found')
 
-    // @ts-ignore - status is currently not used in UI but kept for state completeness
+
     console.log(status)
 
     useEffect(() => {
@@ -30,14 +30,14 @@ export default function TrackingPage() {
 
             if (data) {
                 setRequest(data)
-                // Simulate ETA if not in DB
+
                 setEta(300)
             }
         }
         fetchRequest()
     }, [requestId])
 
-    // ETA Countdown
+
     useEffect(() => {
         const timer = setInterval(() => {
             setEta(prev => {
@@ -60,7 +60,7 @@ export default function TrackingPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Header */}
+            
             <div className="bg-white p-4 flex items-center gap-4 shadow-sm">
                 <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <ArrowLeft className="w-6 h-6 text-gray-900" />
@@ -69,7 +69,7 @@ export default function TrackingPage() {
             </div>
 
             <main className="flex-1 p-6 flex flex-col items-center">
-                {/* Animation Section */}
+                
                 <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl mb-6 relative overflow-hidden border border-gray-100">
                     <div className="text-center mb-8">
                         <p className="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-2">Live Arrival Status</p>
@@ -82,9 +82,9 @@ export default function TrackingPage() {
                         <p className="text-gray-400 font-bold mt-2 text-sm">minutes remaining</p>
                     </div>
 
-                    {/* Walking Animation Container */}
+                    
                     <div className="relative h-40 w-full bg-blue-50/30 rounded-3xl border-2 border-dashed border-blue-100 flex items-center overflow-hidden">
-                        {/* Start Marker (Provider) */}
+                        
                         <div className="absolute left-6 z-10 flex flex-col items-center gap-1">
                             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shadow-inner">
                                 <Clock className="w-6 h-6" />
@@ -92,7 +92,7 @@ export default function TrackingPage() {
                             <span className="text-[10px] font-bold text-blue-400 uppercase">Provider</span>
                         </div>
 
-                        {/* End Marker (User Home) */}
+                        
                         <div className="absolute right-6 z-10 flex flex-col items-center gap-1">
                             <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white shadow-lg">
                                 <MapPin className="w-6 h-6" />
@@ -100,10 +100,10 @@ export default function TrackingPage() {
                             <span className="text-[10px] font-bold text-gray-400 uppercase">You</span>
                         </div>
 
-                        {/* Walking Path */}
+                        
                         <div className="absolute left-16 right-16 h-2 bg-blue-100 rounded-full" />
 
-                        {/* Animated Character (Person Coming) */}
+                        
                         <div
                             className="absolute flex flex-col items-center transition-all duration-1000 ease-linear"
                             style={{
@@ -113,11 +113,11 @@ export default function TrackingPage() {
                             }}
                         >
                             <div className="relative">
-                                {/* Character Body */}
+                                
                                 <div className="w-16 h-16 bg-white rounded-2xl border-4 border-blue-600 shadow-xl flex items-center justify-center overflow-hidden animate-bounce">
                                     <span className="text-3xl">🏃‍♂️</span>
                                 </div>
-                                {/* Pulsing Indicator */}
+                                
                                 <div className="absolute -inset-4 bg-blue-400 rounded-full animate-ping opacity-10"></div>
                             </div>
                             <p className="text-[10px] font-black text-blue-700 mt-2 bg-blue-100 px-2 py-0.5 rounded-full whitespace-nowrap">
@@ -127,7 +127,7 @@ export default function TrackingPage() {
                     </div>
                 </div>
 
-                {/* Info Card */}
+                
                 <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-lg">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-2xl font-bold text-gray-400 border-2 border-white shadow-sm">

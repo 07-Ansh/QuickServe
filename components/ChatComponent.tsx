@@ -15,7 +15,7 @@ export function ChatComponent({ requestId, senderId, receiverName }: Props) {
     const [newMessage, setNewMessage] = useState('')
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
-    // Scroll to bottom
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
@@ -23,7 +23,7 @@ export function ChatComponent({ requestId, senderId, receiverName }: Props) {
     useEffect(() => {
         if (!requestId) return
 
-        // 1. Fetch existing messages
+
         const fetchMessages = async () => {
             const { data } = await supabase
                 .from('messages')
@@ -37,7 +37,7 @@ export function ChatComponent({ requestId, senderId, receiverName }: Props) {
 
         fetchMessages()
 
-        // 2. Subscribe to new messages
+
         const channel = supabase
             .channel(`chat:${requestId}`)
             .on(
@@ -62,7 +62,7 @@ export function ChatComponent({ requestId, senderId, receiverName }: Props) {
         const content = newMessage
         setNewMessage('') // Optimistic clear
 
-        // Optimistic UI Update (for instant feel)
+
         const optimisticMsg = {
             id: Date.now().toString(),
             content,
@@ -72,7 +72,7 @@ export function ChatComponent({ requestId, senderId, receiverName }: Props) {
         setMessages((prev) => [...prev, optimisticMsg])
         scrollToBottom()
 
-        // Send to Supabase
+
         const { error } = await supabase
             .from('messages')
             .insert({
@@ -83,13 +83,13 @@ export function ChatComponent({ requestId, senderId, receiverName }: Props) {
 
         if (error) {
             console.error('Failed to send message:', error)
-            // Revert optimistic update ideally, or show error
+
         }
     }
 
     return (
         <div className="flex flex-col h-[300px] bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            {/* Header */}
+            
             <div className="bg-gray-50 p-3 border-b flex items-center justify-between">
                 <span className="font-bold text-sm text-gray-900">Chat with {receiverName}</span>
                 <div className="flex items-center gap-1 text-xs text-green-600">
@@ -98,7 +98,7 @@ export function ChatComponent({ requestId, senderId, receiverName }: Props) {
                 </div>
             </div>
 
-            {/* Messages Area */}
+            
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
                 {messages.length === 0 && (
                     <div className="text-center text-xs text-gray-600 mt-10 font-medium">
@@ -121,7 +121,7 @@ export function ChatComponent({ requestId, senderId, receiverName }: Props) {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
+            
             <form onSubmit={handleSendMessage} className="p-3 bg-white border-t flex gap-2">
                 <input
                     type="text"

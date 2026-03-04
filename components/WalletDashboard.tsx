@@ -22,7 +22,7 @@ export function WalletDashboard({ providerId, onClose }: WalletDashboardProps) {
                 .eq('status', 'completed')
 
             if (data) {
-                // Mock calculation: 350 per job
+
                 setEarnings(data.length * 350)
             }
             setLoading(false)

@@ -1,11 +1,11 @@
 'use client'
 
 
-import { Wallet, History } from 'lucide-react'
+import { Wallet, History, Wrench } from 'lucide-react'
 import Link from 'next/link'
 
 interface ProviderHeaderProps {
-    // providerId omitted as unused
+
     isOnline: boolean
     onToggleOnline: () => void
     onOpenHistory: () => void
@@ -17,14 +17,17 @@ export function ProviderHeader({ isOnline, onToggleOnline, onOpenHistory, onOpen
     return (
         <div className="bg-white text-gray-900 px-6 py-4 sticky top-0 z-50 border-b border-gray-100">
             <div className="flex justify-between items-center max-w-7xl mx-auto">
-                <div className="flex items-center gap-2">
-                    <Link href="/" className="font-semibold text-xl tracking-tight text-gray-800 hover:opacity-80 transition-opacity">
-                        QuickServe
+                <div className="flex items-center gap-3">
+                    <Link href="/" className="font-bold text-lg md:text-xl tracking-tight flex items-center gap-2 text-white">
+                        <div className="w-8 h-8 md:w-10 md:h-10 bg-white text-black rounded-xl flex items-center justify-center">
+                            <Wrench className="w-5 h-5 md:w-6 md:h-6" />
+                        </div>
+                        <span className="hidden sm:inline">QuickServe</span>
+                        <span className="text-white/60 font-medium text-sm hidden sm:inline ml-2">Provider</span>
                     </Link>
-                    <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Provider</span>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 sm:gap-3">
                     <button
                         onClick={onOpenWallet}
                         className="p-2 text-gray-500 hover:bg-gray-50 rounded-full transition-colors hover:text-gray-900"

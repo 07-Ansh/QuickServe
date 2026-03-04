@@ -29,7 +29,7 @@ export function ProviderList({ providers, onSelect, onClose }: Props) {
                 {providers.map((provider) => (
                     <div key={provider.id} className="border border-gray-100 rounded-2xl p-4 flex items-center gap-4 hover:border-black transition-colors shadow-sm">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex-shrink-0 overflow-hidden">
-                            {/* Placeholder Avatar */}
+
                             <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-xl font-bold text-gray-500">
                                 {provider.name[0]}
                             </div>
@@ -52,7 +52,7 @@ export function ProviderList({ providers, onSelect, onClose }: Props) {
                                     <MapPin className="w-3 h-3" /> {provider.distance}
                                 </span>
                                 <span className="flex items-center gap-1 font-medium">
-                                    <Clock className="w-3 h-3" /> 5 mins
+                                    <Clock className="w-3 h-3" /> {Math.max(2, Math.round(parseFloat(provider.distance) * 2.5))} mins
                                 </span>
                             </div>
                         </div>

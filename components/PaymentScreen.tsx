@@ -36,7 +36,7 @@ export function PaymentScreen({ provider, onConfirm, onBack }: Props) {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirm Booking</h2>
             <p className="text-gray-600 mb-6">Review your selection and select payment</p>
 
-            {/* Provider Summary */}
+            
             <div className="bg-gray-50 rounded-2xl p-4 mb-6 flex items-center justify-between border border-gray-100">
                 <div>
                     <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Professional</p>
@@ -48,7 +48,7 @@ export function PaymentScreen({ provider, onConfirm, onBack }: Props) {
                 </div>
             </div>
 
-            {/* Payment Methods */}
+            
             <div className="space-y-3 mb-8">
                 <p className="text-sm font-bold text-gray-900 uppercase ml-1">Payment Method</p>
                 {methods.map((m) => (
@@ -83,7 +83,7 @@ export function PaymentScreen({ provider, onConfirm, onBack }: Props) {
             <button
                 onClick={async () => {
                     setIsBooking(true)
-                    // Artificial delay for animation effect
+
                     await new Promise(r => setTimeout(r, 1500))
                     setIsBooking(false)
                     setIsSuccess(true)

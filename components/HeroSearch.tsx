@@ -19,7 +19,7 @@ export function HeroSearch() {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
         if (query.trim()) {
-            // In a real app, this would search. For this demo, we'll just go to customer dashboard
+
             router.push(`/dashboard/customer?search=${encodeURIComponent(query)}&demo=true`)
         }
     }

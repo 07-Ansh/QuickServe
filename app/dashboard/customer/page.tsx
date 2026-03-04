@@ -10,8 +10,9 @@ import { SERVICES } from '@/constants/services'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { supabase, isConfigured } from '@/lib/supabase/client'
+import { calculateDistance } from '@/lib/distance'
 
-// ... (previous imports)
+
 import { ChatComponent } from '@/components/ChatComponent'
 import { ReviewComponent } from '@/components/ReviewComponent'
 import { RequestHistory } from '@/components/RequestHistory'
@@ -39,9 +40,10 @@ function DashboardContent() {
     const [currentUser, setCurrentUser] = useState<any>(null)
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
     const [eta, setEta] = useState<number | null>(null)
+    const [providerPosition, setProviderPosition] = useState<[number, number] | null>(null)
     const [nearbyProviders, setNearbyProviders] = useState<any[]>([])
 
-    // Get Real-Time Location
+
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
@@ -54,39 +56,48 @@ function DashboardContent() {
         }
     }, [])
 
-    // Generate Simulated Providers near User
+
     useEffect(() => {
         if (userLocation) {
             const [lat, lng] = userLocation
             const providers = [
-                { id: 'p1', position: [lat + 0.002, lng + 0.002], title: 'Available Pro', name: 'Rahul Singh', rating: 4.8, price: 350, distance: '0.8 km' },
-                { id: 'p2', position: [lat - 0.003, lng + 0.001], title: 'Available Pro', name: 'Amit Verma', rating: 4.6, price: 300, distance: '1.2 km' },
-                { id: 'p3', position: [lat + 0.001, lng - 0.003], title: 'Available Pro', name: 'Suresh Kumar', rating: 4.9, price: 450, distance: '1.5 km' },
-            ]
+                { id: 'p1', lat: lat + 0.018, lng: lng + 0.015, title: 'Available Pro', name: 'Rahul Singh', rating: 4.8, price: 350 },
+                { id: 'p2', lat: lat - 0.022, lng: lng + 0.011, title: 'Available Pro', name: 'Amit Verma', rating: 4.6, price: 300 },
+                { id: 'p3', lat: lat + 0.015, lng: lng - 0.025, title: 'Available Pro', name: 'Suresh Kumar', rating: 4.9, price: 450 },
+            ].map(p => {
+                const distKm = calculateDistance(lat, lng, p.lat, p.lng)
+                return {
+                    ...p,
+                    position: [p.lat, p.lng],
+                    rawDistance: distKm,
+                    distance: `${distKm.toFixed(1)} km`
+                }
+            }).sort((a, b) => a.rawDistance - b.rawDistance)
+
             setNearbyProviders(providers)
         }
     }, [userLocation])
 
-    // 1. Create Request on Mount
+
     useEffect(() => {
         if (!serviceId) return
 
         const createRequest = async () => {
-            // Get User (Real or Demo)
+
             let user = null;
             if (isConfigured) {
                 const { data } = await supabase.auth.getUser();
                 user = data?.user;
             }
 
-            // Check for Demo Mode flag or missing config
+
             const isDemo = !user && window.location.search.includes('demo=true')
             const userId = user?.id || (isDemo ? 'demo-customer-123' : null)
 
             setCurrentUser({ id: userId, isDemo })
 
             if (!userId) {
-                // Redirect if not logged in
+
                 window.location.href = '/login'
                 return
             }
@@ -112,7 +123,7 @@ function DashboardContent() {
                     } else {
                         console.warn('Demo Mode: Running offline simulation.', error.message)
                     }
-                    // Fallback for Demo Mode to ensure redirect works
+
                     const fallbackId = 'local-' + Math.random().toString(36).substring(2, 9)
                     console.log('Using fallback Request ID:', fallbackId)
                     setRequestId(fallbackId)
@@ -131,7 +142,7 @@ function DashboardContent() {
         createRequest()
     }, [serviceId])
 
-    // 2. Subscribe to Realtime Updates
+
     useEffect(() => {
         if (!requestId) return
 
@@ -162,13 +173,13 @@ function DashboardContent() {
         }
     }, [requestId])
 
-    // 3. Simulation Engine (For Demo or Fallback)
+
     useEffect(() => {
-        if (!requestId) return // Run for EVERYONE to ensure "Always Available"
+        if (!requestId) return
 
         const isLocal = requestId.startsWith('local-')
 
-        // Auto-Match after 15s (if user hasn't chosen)
+
         if (status === 'searching' && !showPayment && !selectedProvider) {
             const timer = setTimeout(async () => {
                 if (isLocal) {
@@ -176,26 +187,59 @@ function DashboardContent() {
                 } else {
                     await supabase.from('requests').update({ status: 'found', provider_id: 'bot-provider' }).eq('id', requestId)
                 }
-                setEta(540)
+                setEta(300)
             }, isLocal ? 3000 : 10000)
             return () => clearTimeout(timer)
         }
 
-        // Auto-Arrive after 10s (Simulate travel)
-        if (status === 'found') {
-            const timer = setTimeout(async () => {
-                if (isLocal) {
-                    setStatus('arrived')
-                } else {
-                    await supabase.from('requests').update({ status: 'arrived' }).eq('id', requestId)
-                }
-            }, isLocal ? 5000 : 10000)
-            return () => clearTimeout(timer)
+
+        if (status === 'found' && !selectedProvider) {
+            // Wait for user to actually pick a provider! Wait, this logic used to auto-accept.
+            // Actually, the new modal requires the user to pick one.
         }
 
-    }, [status, requestId, currentUser])
+    }, [status, requestId, currentUser, selectedProvider])
 
-    // ETA Countdown
+    useEffect(() => {
+        if (!userLocation || !['found', 'arrived'].includes(status)) return
+
+        const offsetDist = 0.045
+        let startPos: [number, number] = [userLocation[0] - offsetDist, userLocation[1] + offsetDist]
+
+        if (selectedProvider && selectedProvider.lat && selectedProvider.lng) {
+            startPos = [selectedProvider.lat, selectedProvider.lng]
+        }
+
+        const totalSteps = 375
+        let step = 0
+        setProviderPosition(startPos)
+
+        const timer = setInterval(() => {
+            step++
+            if (step >= totalSteps || status === 'arrived') {
+                clearInterval(timer)
+                setProviderPosition(userLocation)
+                if (status === 'found') {
+                    const isLocal = requestId?.startsWith('local-')
+                    if (isLocal) {
+                        setStatus('arrived')
+                    } else if (requestId) {
+                        supabase.from('requests').update({ status: 'arrived' }).eq('id', requestId)
+                    }
+                }
+            } else {
+                const progress = step / totalSteps
+                const currentLat = startPos[0] + (userLocation[0] - startPos[0]) * progress
+                const currentLng = startPos[1] + (userLocation[1] - startPos[1]) * progress
+                const jitter = (Math.random() - 0.5) * 0.0001
+                setProviderPosition([currentLat + jitter, currentLng + jitter])
+            }
+        }, 800)
+
+        return () => clearInterval(timer)
+    }, [status, userLocation, requestId])
+
+
     useEffect(() => {
         if (!eta || eta <= 0) return
         const timer = setInterval(() => setEta(prev => (prev && prev > 0 ? prev - 1 : 0)), 1000)
@@ -211,7 +255,7 @@ function DashboardContent() {
     const handleLocationSelect = async (lat: number, lng: number) => {
         if (!requestId) return
 
-        // 2. Update Supabase
+
         const { error } = await supabase
             .from('requests')
             .update({ lat, lng })
@@ -244,13 +288,13 @@ function DashboardContent() {
         setShowPayment(false)
         setShowConfirmed(true)
 
-        // Hide success overlay after 2s and redirect
+
         setTimeout(() => {
             setShowConfirmed(false)
             router.push(`/dashboard/tracking/${requestId}`)
         }, 2000)
 
-        // Finalize in DB
+
         await supabase.from('requests').update({
             status: 'found',
             provider_id: selectedProvider.id,
@@ -263,25 +307,30 @@ function DashboardContent() {
     }
 
     const handleMarkerClick = async (id: string) => {
-        handleProviderSelect(id) // Route marker clicks through selection flow
+        handleProviderSelect(id)
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            {/* Navbar Placeholder/gap if needed - assuming globbal layout handles nav, but we need height calc */}
+        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
 
-            <div className="flex-1 flex max-h-[calc(100vh-64px)] overflow-hidden">
-                {/* LEFT: Map Box */}
-                <div className="w-2/3 p-4 pr-2">
+
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                <div className="w-full md:w-2/3 h-[50vh] md:h-full p-3 md:p-4 md:pr-2">
                     <div className="w-full h-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative">
-                        {/* Map Header Overlay */}
+
                         <div className="absolute top-4 left-4 z-[1000] flex items-center gap-2">
                             <Link href="/" className="bg-white p-2 rounded-full shadow-md hover:bg-gray-50 text-gray-900">
                                 <ArrowLeft className="w-5 h-5" />
                             </Link>
                             {service && (
                                 <div className="bg-white px-4 py-2 rounded-full shadow-md font-medium text-sm text-gray-900 border border-gray-200">
-                                    Looking for: <span className="text-primary font-bold">{service.name}</span>
+                                    {status === 'idle' || status === 'searching' ? (
+                                        <>Looking for: <span className="text-primary font-bold">{service.name}</span></>
+                                    ) : status === 'arrived' ? (
+                                        <><span className="text-primary font-bold">{service.name}</span> Provider Arrived</>
+                                    ) : (
+                                        <><span className="text-primary font-bold">{service.name}</span> Provider on the way</>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -291,19 +340,24 @@ function DashboardContent() {
                             markers={[
                                 { id: 'user', position: userLocation || [28.6139, 77.2090], title: 'You' },
                                 ...nearbyProviders.map(p => ({ ...p, icon: 'provider-idle', title: 'Click to Book' })),
-                                ...(status === 'found' || status === 'arrived' ? [{ id: 'provider', position: [28.6200, 77.2100], title: 'Provider' } as any] : [])
+                                ...(status === 'found' || status === 'arrived' ? [{
+                                    id: 'provider',
+                                    position: providerPosition || [28.6200, 77.2100],
+                                    title: 'Provider',
+                                    icon: 'provider'
+                                } as any] : [])
                             ]}
+                            route={status === 'found' && userLocation && providerPosition ? [providerPosition, userLocation] : undefined}
                             onLocationSelect={handleLocationSelect}
                             onMarkerClick={handleMarkerClick}
                         />
                     </div>
                 </div>
 
-                {/* RIGHT: Controls Sidebar */}
-                <div className="w-1/3 p-4 pl-2 overflow-y-auto bg-gray-50 border-l border-gray-100/50">
+                <div className="w-full md:w-1/3 p-3 md:p-4 md:pl-2 overflow-y-auto bg-gray-50 border-t md:border-t-0 md:border-l border-gray-100/50 max-h-[50vh] md:max-h-full">
                     <div className="space-y-4 max-w-md mx-auto">
 
-                        {/* Status / Booking Card */}
+
                         {status !== 'idle' && (
                             <RequestStatusCard
                                 status={status as any}
@@ -318,7 +372,7 @@ function DashboardContent() {
 
 
 
-                        {/* Payment (Inline) */}
+
                         {showPayment && selectedProvider && (
                             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden p-4">
                                 <h3 className="font-semibold text-gray-900 mb-4">Confirm Booking</h3>
@@ -333,7 +387,7 @@ function DashboardContent() {
                             </div>
                         )}
 
-                        {/* History Button (Moved to sidebar) */}
+
                         <button
                             onClick={() => setShowHistory(true)}
                             className="w-full bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
@@ -345,25 +399,25 @@ function DashboardContent() {
             </div>
 
 
-            {/* Overlays that still need to be absolute (Modals) */}
 
-            {/* Confirmation Success Overlay */}
+
+
             {showConfirmed && <BookingConfirmedOverlay />}
 
-            {/* Chat Button (Floating over map? Or in sidebar?) -> Let's keep it floating for now but maybe better in sidebar using standard UI */}
-            {/* Floating on bottom right of screen might overlap sidebar. Let's position it absolute to the screen safely. */}
+
+
             {(status === 'arrived' || status === 'found' || status === 'in_progress') && (
                 <button
                     onClick={() => setShowChat(!showChat)}
-                    className="fixed bottom-8 right-8 z-[2000] bg-black text-white p-4 rounded-full shadow-lg hover:scale-105 transition-transform"
+                    className="fixed bottom-6 right-4 md:bottom-8 md:right-8 z-[2000] bg-black text-white p-3 md:p-4 rounded-full shadow-lg hover:scale-105 transition-transform"
                 >
                     <MessageSquare className="w-6 h-6" />
                 </button>
             )}
 
-            {/* Chat Overlay */}
+
             {showChat && requestId && currentUser && (
-                <div className="fixed bottom-24 right-8 z-[2000] w-80 shadow-2xl rounded-xl animate-in slide-in-from-bottom-10 fade-in duration-300">
+                <div className="fixed bottom-24 right-2 md:right-8 z-[2000] w-[calc(100vw-1rem)] max-w-sm shadow-2xl rounded-xl animate-in slide-in-from-bottom-10 fade-in duration-300">
                     <ChatComponent
                         requestId={requestId}
                         senderId={currentUser.id}
@@ -372,7 +426,7 @@ function DashboardContent() {
                 </div>
             )}
 
-            {/* Profile Overlay */}
+
             {showProfile && currentUser && (
                 <ProfileEditor
                     userId={currentUser.id}
@@ -381,7 +435,7 @@ function DashboardContent() {
                 />
             )}
 
-            {/* Review Overlay */}
+
             {showReview && requestId && currentUser && (
                 <div className="fixed inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <ReviewComponent
@@ -397,7 +451,6 @@ function DashboardContent() {
                 </div>
             )}
 
-            {/* History Modal */}
             {showHistory && (
                 <div className="fixed inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
@@ -416,7 +469,6 @@ function DashboardContent() {
                 </div>
             )}
 
-            {/* Provider Selection Modal (Popup) */}
             {showProviderList && (
                 <div className="fixed inset-0 z-[2000] bg-black/50 flex items-end md:items-center justify-center p-4 backdrop-blur-sm">
                     <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 fade-in duration-300">

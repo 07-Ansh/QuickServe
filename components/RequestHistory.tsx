@@ -39,7 +39,7 @@ export function RequestHistory({ userId, role, onClose }: RequestHistoryProps) {
         <div className="fixed inset-0 z-[2000] bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
             <div className="bg-white w-full md:max-w-md h-[80vh] md:h-auto md:max-h-[80vh] rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10">
 
-                {/* Header */}
+                
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center">
                     <h2 className="font-bold text-xl">Past Bookings</h2>
                     <button
@@ -50,7 +50,7 @@ export function RequestHistory({ userId, role, onClose }: RequestHistoryProps) {
                     </button>
                 </div>
 
-                {/* Content */}
+                
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {loading ? (
                         <div className="text-center py-10 text-gray-400">Loading history...</div>
@@ -71,7 +71,7 @@ export function RequestHistory({ userId, role, onClose }: RequestHistoryProps) {
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex items-center gap-2">
                                             <div className={`p-2 rounded-full ${service?.color || 'bg-gray-200'}`}>
-                                                {/* Icon placeholder if needed */}
+                                                
                                                 <div className="w-4 h-4 bg-black/10 rounded-full" />
                                             </div>
                                             <div>

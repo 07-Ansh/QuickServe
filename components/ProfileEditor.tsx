@@ -35,7 +35,7 @@ export function ProfileEditor({ userId, role, onClose }: ProfileEditorProps) {
                     service_type: data.service_type || ''
                 })
             } else {
-                // Demo defaults
+
                 setFormData({
                     full_name: role === 'customer' ? 'Demo Customer' : 'Rajesh Kumar',
                     phone_number: '+91 98765 43210',
@@ -50,7 +50,7 @@ export function ProfileEditor({ userId, role, onClose }: ProfileEditorProps) {
     const handleSave = async () => {
         setLoading(true)
 
-        // Upsert profile
+
         const { error } = await supabase
             .from('profiles')
             .upsert({

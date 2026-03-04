@@ -10,7 +10,7 @@ import { ArrowLeft, Mail, Loader2, AlertTriangle } from 'lucide-react'
 function LoginContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const serviceId = searchParams.get('service')
     const [role, setRole] = useState<'customer' | 'provider'>('customer')
     const [isLoading, setIsLoading] = useState(false)
@@ -18,7 +18,7 @@ function LoginContent() {
     const [password, setPassword] = useState('')
     const [isSignUp, setIsSignUp] = useState(false)
 
-    // ... (removed Google/Phone handlers for brevity)
+
 
     const handleMagicLink = async () => {
         if (!email) {
@@ -55,7 +55,7 @@ function LoginContent() {
         setIsLoading(true)
         try {
             if (isSignUp) {
-                // Sign Up
+
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
@@ -67,13 +67,13 @@ function LoginContent() {
                 if (error) throw error
                 alert('Sign up successful! Check your email to confirm.')
             } else {
-                // Sign In
+
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 })
                 if (error) throw error
-                // Redirect happens automatically or we can force it
+
                 router.push(`/dashboard/${role}`)
             }
         } catch (e: unknown) {
@@ -115,7 +115,7 @@ function LoginContent() {
                     >
                         <ArrowLeft className="w-6 h-6" />
                     </button>
-                    {/* Logo Removed */}
+                    
                     <h1 className="text-2xl font-bold mb-2">
                         {isSignUp ? 'Create Account' : 'Welcome Back'}
                     </h1>
@@ -124,7 +124,7 @@ function LoginContent() {
                     </p>
                 </div>
 
-                {/* Role Toggle */}
+                
                 <div className="p-8 pt-6">
                     <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
                         <button
@@ -148,7 +148,7 @@ function LoginContent() {
                     </div>
 
                     <div className="space-y-4">
-                        {/* Email/Password Form */}
+                        
                         <form onSubmit={handleEmailAuth} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">

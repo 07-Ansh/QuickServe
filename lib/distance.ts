@@ -93,6 +93,6 @@ export function getTimeAgo(timestamp: string | Date): string {
         return `${secondsAgo}s ago`
     }
 
-    // For requests older than 20 seconds, show they're urgent/immediate
+
     return 'Immediate'
 }

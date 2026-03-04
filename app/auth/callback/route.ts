@@ -15,12 +15,12 @@ export async function GET(request: Request) {
         const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error && session?.user && role) {
-            // Update user metadata with selected role if not exists
+
             const { error: updateError } = await supabase.auth.updateUser({
                 data: { role: role }
             })
 
-            // Also ensure profile exists (optional, if trigger fails)
+
             const { error: profileError } = await supabase
                 .from('profiles')
                 .upsert({
@@ -31,6 +31,6 @@ export async function GET(request: Request) {
         }
     }
 
-    // URL to redirect to after sign in process completes
+
     return NextResponse.redirect(`${requestUrl.origin}${next}`)
 }

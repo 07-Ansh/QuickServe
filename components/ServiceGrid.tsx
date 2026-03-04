@@ -8,7 +8,7 @@ export function ServiceGrid() {
     const router = useRouter()
 
     const handleSelect = (serviceId: string) => {
-        // Direct Access: Go to dashboard with service pre-selected
+
         router.push(`/dashboard/customer?service=${serviceId}&demo=true`)
     }
 

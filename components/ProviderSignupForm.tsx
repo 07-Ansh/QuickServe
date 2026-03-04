@@ -26,7 +26,7 @@ export function ProviderSignupForm({ userId, onComplete }: ProviderSignupFormPro
 
         setLoading(true)
 
-        // Upsert profile
+
         const { error } = await supabase
             .from('profiles')
             .upsert({
@@ -54,7 +54,6 @@ export function ProviderSignupForm({ userId, onComplete }: ProviderSignupFormPro
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Full Name */}
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Full Name</label>
                     <div className="relative">
@@ -69,7 +68,6 @@ export function ProviderSignupForm({ userId, onComplete }: ProviderSignupFormPro
                     </div>
                 </div>
 
-                {/* Email (Optional/Contact) */}
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email Address</label>
                     <div className="relative">
@@ -84,7 +82,6 @@ export function ProviderSignupForm({ userId, onComplete }: ProviderSignupFormPro
                     </div>
                 </div>
 
-                {/* Service Type */}
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Service Category</label>
                     <div className="relative">
@@ -105,7 +102,6 @@ export function ProviderSignupForm({ userId, onComplete }: ProviderSignupFormPro
                     </div>
                 </div>
 
-                {/* Bio */}
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Experience / Bio</label>
                     <textarea

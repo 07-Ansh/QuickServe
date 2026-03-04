@@ -29,7 +29,7 @@ export default function ProviderDashboard() {
     const [isOnboarded, setIsOnboarded] = useState(false)
     const [loading, setLoading] = useState(true)
 
-    // Initial Load
+
     useEffect(() => {
         const checkUser = async () => {
             try {
@@ -41,7 +41,7 @@ export default function ProviderDashboard() {
                 const isDemo = !user && window.location.search.includes('demo=true')
                 const userId = user?.id || (isDemo ? 'demo-provider-456' : null)
 
-                // Local Storage Hydration (Immediate)
+
                 if (typeof window !== 'undefined') {
                     const cachedOnline = localStorage.getItem('provider_is_online')
                     if (cachedOnline) setIsOnline(cachedOnline === 'true')
@@ -56,7 +56,7 @@ export default function ProviderDashboard() {
                 if (userId) {
                     let profileData = null;
                     if (isConfigured) {
-                        // Fetch Profile details
+
                         const { data, error: profileError } = await supabase
                             .from('profiles')
                             .select('*')
@@ -74,10 +74,10 @@ export default function ProviderDashboard() {
 
                         setIsOnboarded(!!profileData.service_type)
                     } else if (!isDemo) {
-                        // Start Signup Flow
+
                         setIsOnboarded(false)
                     } else {
-                        // Demo defaults
+
                         if (!localStorage.getItem('provider_service_type')) {
                             setServiceType('plumbing')
                             setIsOnboarded(true)
@@ -93,7 +93,7 @@ export default function ProviderDashboard() {
         }
         checkUser()
 
-        // Get Location
+
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 (position) => setProviderLocation([position.coords.latitude, position.coords.longitude]),
@@ -103,12 +103,12 @@ export default function ProviderDashboard() {
         }
     }, [])
 
-    // Fetch Requests Loop
+
     useEffect(() => {
         if (!currentUser || !isOnboarded) return
 
         const fetchRequests = async () => {
-            // STOP FETCHING IF OFFLINE
+
             if (!isOnline) {
                 setRequests([])
                 return
@@ -127,10 +127,10 @@ export default function ProviderDashboard() {
                 data = res.data;
             }
 
-            // Demo Simulation
+
             if (currentUser.isDemo || (data && data.length === 0) || !isConfigured) {
 
-                // GENERATE 2-3 RANDOM ORDERS
+
                 const now = new Date()
                 const baseLocation = providerLocation || [28.6139, 77.2090]
 
@@ -172,12 +172,12 @@ export default function ProviderDashboard() {
                     }
                 ]
 
-                // Filter by service if set, else show random mix
+
                 let filtered = serviceType
                     ? allDemoRequests.filter(r => r.service_id === serviceType)
                     : allDemoRequests
 
-                // Shuffle and pick 2-3
+
                 filtered = filtered.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 2) + 2) // 2 or 3
 
                 setRequests(filtered)
@@ -199,8 +199,8 @@ export default function ProviderDashboard() {
     const handleUpdateStatus = async (request: any, newStatus: string) => {
         if (!currentUser) return
 
-        // In-App Navigation is now handled by the MapComponent highlighting the route.
-        // We removed the auto-redirect to Google Maps.
+
+
 
         const updateData: any = { status: newStatus }
         if (newStatus === 'found') updateData.provider_id = currentUser.id
@@ -226,7 +226,7 @@ export default function ProviderDashboard() {
         }
     }
 
-    // Calculate Active Route
+
     const activeRequest = requests.find(r => ['found', 'arrived', 'in_progress'].includes(r.status))
     const route = (activeRequest && providerLocation && activeRequest.lat && activeRequest.lng)
         ? [providerLocation, [activeRequest.lat, activeRequest.lng]] as [number, number][]
@@ -235,7 +235,7 @@ export default function ProviderDashboard() {
     if (loading) return <div className="flex items-center justify-center h-screen bg-gray-50">Loading...</div>
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col h-screen overflow-hidden">
+        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
             <ProviderHeader
                 isOnline={isOnline}
                 onToggleOnline={handleToggleOnline}
@@ -243,9 +243,8 @@ export default function ProviderDashboard() {
                 onOpenWallet={() => setShowWallet(true)}
             />
 
-            <div className="flex-1 flex overflow-hidden relative">
-                {/* LEFT: Map */}
-                <div className="w-2/3 h-full relative">
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+                <div className="w-full md:w-2/3 h-[45vh] md:h-full relative">
                     <MapComponent
                         center={providerLocation || [28.6139, 77.2090]}
                         markers={[
@@ -261,11 +260,9 @@ export default function ProviderDashboard() {
                         onMarkerClick={setSelectedRequestId}
                     />
 
-                    {/* Map Overlays */}
                 </div>
 
-                {/* RIGHT: Sidebar */}
-                <div className="w-1/3 p-4 pl-2 overflow-y-auto bg-gray-50 border-l border-gray-100/50">
+                <div className="w-full md:w-1/3 bg-white border-t md:border-t-0 md:border-l border-gray-100/50 flex flex-col max-h-[55vh] md:max-h-full">
                     <div className="space-y-4 max-w-md mx-auto h-full flex flex-col">
                         {!isOnboarded ? (
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 h-full overflow-hidden">
@@ -276,9 +273,9 @@ export default function ProviderDashboard() {
                             </div>
                         ) : (
                             <>
-                                {/* Main Status Card */}
+
                                 <div className="bg-white p-6 rounded-2xl border border-gray-200 w-full shadow-sm flex-1 flex flex-col relative overflow-hidden min-h-[400px]">
-                                    {/* Card Header */}
+
                                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-50">
                                         <div>
                                             <h2 className="font-bold text-xl text-gray-900 tracking-tight">
@@ -295,7 +292,7 @@ export default function ProviderDashboard() {
                                         )}
                                     </div>
 
-                                    {/* Content Area */}
+
                                     <div className="flex-1 overflow-y-auto -mx-2 px-2 custom-scrollbar">
                                         {requests.length === 0 ? (
                                             <div className="h-full flex flex-col items-center justify-center text-center py-12">
@@ -321,16 +318,17 @@ export default function ProviderDashboard() {
                                         ) : (
                                             <div className="space-y-4 pb-4">
                                                 {requests.filter(req => {
-                                                    // If there's ANY active job, only show THAT job
+
                                                     if (activeRequest) {
                                                         return req.id === activeRequest.id
                                                     }
-                                                    // Otherwise show all "searching" jobs
+
                                                     return req.status === 'searching'
                                                 }).map(req => {
-                                                    const distance = (providerLocation && req.lat && req.lng)
-                                                        ? calculateDistance(providerLocation[0], providerLocation[1], req.lat, req.lng)
-                                                        : 0
+                                                    const effectiveLocation: [number, number] = providerLocation || [28.6139, 77.2090]
+                                                    const distance = (req.lat && req.lng)
+                                                        ? calculateDistance(effectiveLocation[0], effectiveLocation[1], req.lat, req.lng)
+                                                        : null
 
                                                     return (
                                                         <div
@@ -344,11 +342,11 @@ export default function ProviderDashboard() {
                                                             </div>
                                                             <h3 className="font-bold text-gray-900 truncate mb-1">{req.address}</h3>
                                                             <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
-                                                                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {formatDistance(distance)}</span>
+                                                                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {distance !== null ? formatDistance(distance) : 'Nearby'}</span>
                                                                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {getTimeAgo(req.created_at)}</span>
                                                             </div>
 
-                                                            {/* Actions */}
+
                                                             <div className="mt-2 flex gap-2">
                                                                 {req.status === 'searching' && (
                                                                     <button
@@ -400,7 +398,7 @@ export default function ProviderDashboard() {
                                     </div>
                                 </div>
 
-                                {/* Bottom Quick Actions */}
+
                                 <div className="grid grid-cols-2 gap-3 mt-auto pt-2">
                                     <button
                                         onClick={() => setShowHistory(true)}
@@ -421,7 +419,7 @@ export default function ProviderDashboard() {
                 </div>
             </div>
 
-            {/* Modals & Overlays */}
+
             {showWallet && currentUser && <WalletDashboard providerId={currentUser.id} onClose={() => setShowWallet(false)} />}
             {showHistory && currentUser && <RequestHistory userId={currentUser.id} role="provider" onClose={() => setShowHistory(false)} />}
         </div>
