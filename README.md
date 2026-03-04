@@ -15,7 +15,7 @@ QuickServe is an on-demand home services platform that connects customers with v
 - ⭐ **Ratings & Reviews** — Post-service feedback system
 - 💳 **Payments** — Built-in payment flow with wallet support
 - 👤 **Dual Dashboards** — Separate views for customers and service providers
-- 🌐 **Demo Mode** — Try the provider dashboard without signing up
+- 🌐 **Demo Mode** — Try the provider and Customer dashboard without signing up
 
 ## 🛠️ Tech Stack
 
@@ -106,17 +106,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `messages` | Real-time in-app chat messages |
 
 Row Level Security (RLS) is enabled on all tables.
-
-## 🧩 Services Offered
-
-| Service | Base Price |
-|---|---|
-| 🔧 General Repair | ₹300 |
-| 💧 Plumbing | ₹350 |
-| ⚡ Electrical | ₹400 |
-| 🪣 Cleaning | ₹250 |
-| 🔨 Carpentry | ₹450 |
-| 🚚 Moving & Layout | ₹500 |
 
 ## 📜 License
 
